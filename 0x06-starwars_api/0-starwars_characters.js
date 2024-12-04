@@ -1,6 +1,5 @@
 #!/usr/bin/node
-
-const fetch = require('node-fetch');
+const request = require('request');
 
 const movieId = process.argv[2];
 if (!movieId) {
@@ -10,20 +9,41 @@ if (!movieId) {
 
 const apiUrl = `https://swapi-api.alx-tools.com/api/films/${movieId}/`;
 
-(async () => {
-  try {
-    const response = await fetch(apiUrl);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+request(apiUrl, (err, res, body) => {
+  if (err) {
+    console.error(err);
+    return;
+  }
+
+  if (res.statusCode !== 200) {
+    console.error(`Error: Received status code ${res.statusCode}`);
+    return;
+  }
+
+  const movieData = JSON.parse(body);
+  const characters = movieData.characters;
+
+  const printCharacter = (index) => {
+    if (index >= characters.length) {
+      return;
     }
 
-    const movieData = await response.json();
-    for (const characterUrl of movieData.characters) {
-      const characterResponse = await fetch(characterUrl);
-      const characterData = await characterResponse.json();
+    request(characters[index], (err, res, body) => {
+      if (err) {
+        console.error(err);
+        return;
+      }
+
+      if (res.statusCode !== 200) {
+        console.error(`Error: Received status code ${res.statusCode}`);
+        return;
+      }
+
+      const characterData = JSON.parse(body);
       console.log(characterData.name);
-    }
-  } catch (error) {
-    console.error(`Error: ${error.message}`);
-  }
-})();
+      printCharacter(index + 1);
+    });
+  };
+
+  printCharacter(0);
+});
